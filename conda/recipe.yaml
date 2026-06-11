@@ -9,7 +9,7 @@ source:
   path: ..
 
 build:
-  number: 1
+  number: 2
   script:
     file: build.sh
   dynamic_linking:
@@ -43,7 +43,9 @@ requirements:
     - cuda-nvcc
     - cuda-cudart-dev
     - cuda-nvrtc-dev
-    - libnvjitlink-dev
+    # keep nvjitlink on the same minor as cuda-version: its run-export pins
+    # the consumer env, and gigastrap holds cuda-toolkit 12.8.*
+    - libnvjitlink-dev 12.8.*
     - cuda-cccl
     - cuda-version 12.8.*
   run:

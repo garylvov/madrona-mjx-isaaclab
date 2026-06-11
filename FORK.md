@@ -56,12 +56,22 @@ rebuilds are. Mirroring the tarballs is an open follow-up.
 
 ## Building
 
+This repo is fully standalone -- no Isaac, no gigastrap. The pixi env supplies
+cmake/make, CUDA, a pinned sysroot (2.34, see below), and rattler-build:
+
 ```
-mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_SYSROOT=<gigastrap>/.pixi/envs/gsi/x86_64-conda-linux-gnu/sysroot
-make -j
+pixi run build          # local dev build into build/
+pixi run conda-build    # rattler-build the madrona-mjx conda package
+pixi run conda-upload   # push to prefix.dev/garylvov
 ```
 
-The sysroot is only needed on hosts without `/usr/lib64/libm.so.6` (Ubuntu 24.04).
-Conda packaging: see `conda/recipe.yaml`.
+Notes:
+- The sysroot works around hosts without `/usr/lib64/libm.so.6` (Ubuntu 24.04)
+  and is pinned to 2.34: an unpinned sysroot resolves to 2.39 and leaks
+  `__isoc23_*` (glibc 2.38) symbols into `libmadmjx_mgr.so`, making the conda
+  package uninstallable on libc<2.39 hosts (clusters).
+- The conda recipe builds from a source tree placed under `$PREFIX` so the
+  absolute paths madrona bakes at configure time (runtime HLSL/sky data,
+  NVRTC device sources, `DATA_DIR`) are prefix-relocated at install.
+- `mujoco` is intentionally not a run dep of the conda package (gigastrap
+  provides it via pip); consumers must supply `mujoco>=3.3.3` with mjx.

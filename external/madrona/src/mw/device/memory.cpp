@@ -151,9 +151,19 @@ void * TmpAllocator::alloc(uint64_t num_bytes)
 
             uint64_t min_grow = required_bytes - cur_mapped_bytes;
 
-            // Double by default
-            uint64_t num_added_bytes = 
-                max(max(cur_mapped_bytes, min_grow), uint64_t(1024 * 1024));
+            // Double by default. The minimum-grow floor was 1 MiB; bumped to
+            // 256 MiB to avoid in-graph re-grows during the BVH allocation
+            // kernel. At higher num_worlds the total per-frame TmpAllocator
+            // usage (BVH internal nodes + widening + sort + taskgraph_utils)
+            // exceeds 1 MiB, triggering a second mapMemory call inside the
+            // captured render graph -- which crashes at gpuStreamInit with
+            // "illegal memory access" because the host-channel cuMemMap is
+            // not allowed inside graph execution. Pre-sizing the first grow
+            // to 256 MiB covers the worst-case world-count + scene-complexity
+            // combination we use without burning real VRAM (the address space
+            // is reserved, only used pages are committed).
+            uint64_t num_added_bytes =
+                max(max(cur_mapped_bytes, min_grow), uint64_t(256 * 1024 * 1024));
 
             constexpr uint64_t max_normal_grow = 256 * 1024 * 1024;
             if (min_grow < max_normal_grow) {

@@ -2594,7 +2594,10 @@ MWCudaLaunchGraph MWCudaExecutor::buildRenderGraph()
                     bvh_kernels.buildEvent));
 
         // Fast LBVH build node
-        const uint32_t num_blocks_per_sm_fast_build = 16;
+        // Reduced from 16 to 4 to match MADRONA_MWGPU_MAX_BLOCKS_PER_SM defined
+        // in bvh.cpp. 16 caused illegal memory access at runtime on RTX 3090
+        // (sm_86) because the kernel scratchpad is sized for at most 4 blocks/SM.
+        const uint32_t num_blocks_per_sm_fast_build = 4;
         bvh_launch_params.func = bvh_kernels.buildFast;
         bvh_launch_params.gridDimX = bvh_kernels.numSMs *
             num_blocks_per_sm_fast_build;
@@ -2620,7 +2623,7 @@ MWCudaLaunchGraph MWCudaExecutor::buildRenderGraph()
                     get_prev_node(), 1,
                     bvh_kernels.buildEvent));
 
-        const uint32_t num_blocks_per_sm_slow_build = 16;
+        const uint32_t num_blocks_per_sm_slow_build = 4;
         bvh_launch_params.func = bvh_kernels.buildSlow;
         bvh_launch_params.gridDimX = bvh_kernels.numSMs *
             num_blocks_per_sm_slow_build;
@@ -2640,7 +2643,7 @@ MWCudaLaunchGraph MWCudaExecutor::buildRenderGraph()
                     get_prev_node(), 1,
                     bvh_kernels.widenEvent));
 
-        const uint32_t num_blocks_per_sm_slow_build = 16;
+        const uint32_t num_blocks_per_sm_slow_build = 4;
         bvh_launch_params.func = bvh_kernels.widenTree;
         bvh_launch_params.gridDimX = bvh_kernels.numSMs *
             num_blocks_per_sm_slow_build;

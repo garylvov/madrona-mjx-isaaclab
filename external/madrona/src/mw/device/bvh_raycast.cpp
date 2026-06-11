@@ -937,7 +937,7 @@ static __device__ FragmentResult computeFragment(
     };
 }
 
-extern "C" __global__ void bvhRaycastEntry()
+extern "C" __global__ __launch_bounds__(64, 4) void bvhRaycastEntry()
 {
     uint32_t pixels_per_block = blockDim.x;
 

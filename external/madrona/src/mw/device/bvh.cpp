@@ -524,7 +524,7 @@ inline __device__ uint32_t partitionIndices(
 }
 
 // This builds a high quality tree but slowly
-extern "C" __global__ void bvhBuildSlow()
+extern "C" __global__ __launch_bounds__(256, 1) void bvhBuildSlow()
 {
     BVHInternalData *internal_data = bvhParams.internalData;
     sm::BuildSlowBuffer *smem = (sm::BuildSlowBuffer *)sm::buffer;
@@ -728,7 +728,7 @@ extern "C" __global__ void bvhBuildSlow()
 }
 
 // We are going to have each thread be responsible for a single internal node
-extern "C" __global__ void bvhBuildFast()
+extern "C" __global__ __launch_bounds__(256, 1) void bvhBuildFast()
 {
     BVHInternalData *internal_data = bvhParams.internalData;
     sm::BuildFastBuffer *smem = (sm::BuildFastBuffer *)sm::buffer;
@@ -912,7 +912,7 @@ extern "C" __global__ void bvhBuildFast()
 // Constructs the internal nodes' AABBs
 //
 // TODO: Create outer loop for persistent threads.
-extern "C" __global__ void bvhConstructAABBs()
+extern "C" __global__ __launch_bounds__(256, 1) void bvhConstructAABBs()
 {
     BVHInternalData *internal_data = bvhParams.internalData;
     sm::ConstructAABBBuffer *smem = (sm::ConstructAABBBuffer *)sm::buffer;
@@ -1038,7 +1038,7 @@ inline __device__ sm::WidenJob getWidenJob(sm::WidenBuffer *smem)
 }
 
 // For now, we're just doing a very naive widening of the initial binary tree.
-extern "C" __global__ void bvhWidenTree()
+extern "C" __global__ __launch_bounds__(256, 1) void bvhWidenTree()
 {
     BVHInternalData *internal_data = bvhParams.internalData;
     sm::WidenBuffer *smem = (sm::WidenBuffer *)sm::buffer;
@@ -1402,7 +1402,7 @@ struct WarpRegisterFile
 #endif
 
 // Each warp will maintain a single treelet
-extern "C" __global__ void bvhOptimizeLBVH()
+extern "C" __global__ __launch_bounds__(256, 1) void bvhOptimizeLBVH()
 {
 #if 0
     BVHInternalData *internal_data = bvhParams.internalData;

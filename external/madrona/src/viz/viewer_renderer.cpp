@@ -2539,7 +2539,7 @@ static ViewerRendererState initState(RenderContext &rctx,
     Device &dev = rctx.dev;
 
     PresentationState present(
-        backend, dev, window, InternalConfig::numFrames, true);
+        backend, dev, window, InternalConfig::numFrames, false);
 
     ImGuiRenderState imgui_state = imguiInit(
         window->hdl, dev, backend, rctx.renderQueue,

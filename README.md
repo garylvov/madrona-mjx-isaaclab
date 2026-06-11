@@ -20,8 +20,10 @@ pixi add madrona-mjx-isaaclab
 ```
 
 Requirements: linux-64, glibc >= 2.34 (Ubuntu 22.04+), NVIDIA driver for
-CUDA 12.8, python 3.11. You must provide `mujoco >= 3.3.3` with mjx yourself
-(intentionally not a dependency, to avoid clobbering pip-installed mujoco).
+CUDA 12.8, python 3.12 (canonical) or 3.11 (shipped for Isaac Sim envs,
+which pin 3.11). Works with both old (0.5.x) and current jax. You must
+provide `mujoco >= 3.3.3` with mjx yourself (intentionally not a dependency,
+to avoid clobbering pip-installed mujoco).
 
 If JAX runs in the same process (the MJX path does), set
 `XLA_PYTHON_CLIENT_PREALLOCATE=false`: JAX's default ~75% GPU memory
@@ -123,12 +125,12 @@ uv pip install -e .   # exposes madrona_mjx + madrona_mjx_isaaclab
 ```
 
 Notes:
-- Use a python 3.11 env (the extensions are built against the pixi env's 3.11).
+- Use a python 3.12 env (the extensions are built against the pixi env's 3.12).
 - Editable-only: upstream's build backend emits a redirect into this checkout,
   so keep the clone around -- the compiled libs also resolve their CUDA
   libraries through it.
-- Bring your own `jax <0.6.0` and `mujoco >= 3.3.3` (plus Isaac Lab if you use
-  the `madrona_mjx_isaaclab` adapter).
+- Bring your own `jax` and `mujoco >= 3.3.3` (plus Isaac Lab if you use the
+  `madrona_mjx_isaaclab` adapter).
 
 ## License
 

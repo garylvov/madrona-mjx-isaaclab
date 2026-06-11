@@ -4,7 +4,6 @@ import sys
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import jax
-from jax import core
 from jax import dtypes
 from jax import lax
 from jax import numpy as jp
@@ -15,12 +14,40 @@ from jax.interpreters import mlir
 from jax.interpreters import xla
 from jax.interpreters.mlir import dtype_to_ir_type
 from jax.interpreters.mlir import ir
-from jax.lib import xla_client
-from jaxlib.hlo_helpers import custom_call
 from mujoco.mjx._src import io
 from mujoco.mjx._src import math
 from mujoco.mjx._src import support
 import numpy as np
+
+# ---------------------------------------------------------------------------
+# Compatibility shims: support both jax 0.5.x (legacy) and jax 0.10.x+
+# ---------------------------------------------------------------------------
+
+# Primitive: moved from jax.core to jax.extend.core in jax 0.10.x.
+# jax.extend.core.Primitive exists in both 0.5.x and 0.10.x, so prefer it.
+try:
+    from jax.extend.core import Primitive as _Primitive
+except ImportError:
+    # Fallback for any hypothetical even-older jax that lacks jax.extend.
+    from jax.core import Primitive as _Primitive  # type: ignore[assignment]
+
+# xla_client.register_custom_call_target: in jax 0.5.x it lives at
+# jax.lib.xla_client; that path was removed in 0.10.x.  jaxlib.xla_client
+# is accessible in both versions (jax.lib just re-exported it previously).
+try:
+    import jaxlib.xla_client as _xla_client
+except ImportError:
+    # Final fallback: very old jax where jaxlib lacked the top-level module.
+    from jax.lib import xla_client as _xla_client  # type: ignore[assignment]
+
+# custom_call for MLIR lowering rules: jaxlib.hlo_helpers was removed in
+# jax 0.10.x.  jax._src.interpreters.mlir.custom_call exists in both 0.5.x
+# and 0.10.x with an identical signature, so use it directly.
+try:
+    from jax._src.interpreters.mlir import custom_call as _custom_call
+except ImportError:
+    # If the private path ever moves, fall back to jaxlib.hlo_helpers.
+    from jaxlib.hlo_helpers import custom_call as _custom_call  # type: ignore[assignment]
 
 from madrona_mjx._madrona_mjx_batch_renderer import MadronaBatchRenderer
 from madrona_mjx._madrona_mjx_batch_renderer.madrona import ExecMode
@@ -136,16 +163,22 @@ class BatchRenderer:
       use_rasterizer=False,
       viz_gpu_hdls=None,
   ):
-    mesh_verts = m.mesh_vert
-    mesh_faces = m.mesh_face
-    mesh_vert_offsets = m.mesh_vertadr
-    mesh_face_offsets = m.mesh_faceadr
-    mesh_texcoords = m.mesh_texcoord
-    mesh_texcoord_offsets = m.mesh_texcoordadr
-    mesh_texcoord_num = m.mesh_texcoordnum
-    geom_types = m.geom_type
-    geom_groups = m.geom_group
-    geom_data_ids = m.geom_dataid
+    # Use jax.device_get() on all model fields passed to the C++ extension.
+    # In modern mujoco-mjx (3.x), mjx.put_model() stores every field as a JAX
+    # device array.  The MadronaBatchRenderer nanobind extension requires plain
+    # CPU numpy arrays (device='cpu').  jax.device_get() converts JAX arrays to
+    # numpy and is a no-op when the value is already a numpy array, so this is
+    # safe for both old (numpy-backed) and new (JAX-backed) mjx models.
+    mesh_verts = jax.device_get(m.mesh_vert)
+    mesh_faces = jax.device_get(m.mesh_face)
+    mesh_vert_offsets = jax.device_get(m.mesh_vertadr)
+    mesh_face_offsets = jax.device_get(m.mesh_faceadr)
+    mesh_texcoords = jax.device_get(m.mesh_texcoord)
+    mesh_texcoord_offsets = jax.device_get(m.mesh_texcoordadr)
+    mesh_texcoord_num = jax.device_get(m.mesh_texcoordnum)
+    geom_types = jax.device_get(m.geom_type)
+    geom_groups = jax.device_get(m.geom_group)
+    geom_data_ids = jax.device_get(m.geom_dataid)
     geom_sizes = jax.device_get(m.geom_size)
     geom_mat_ids = jax.device_get(m.geom_matid)
     geom_rgba = jax.device_get(m.geom_rgba)
@@ -158,21 +191,21 @@ class BatchRenderer:
     else:
       assert len(enabled_cameras) <= m.ncam
 
-    assert m.ncam > 0  # Must have at least one camera for Madrona to work!    
-    
+    assert m.ncam > 0  # Must have at least one camera for Madrona to work!
+
     self.enabled_cameras = enabled_cameras
     num_cams = len(enabled_cameras)
 
-    mat_tex_ids = m.mat_texid
-    tex_data = m.tex_data
+    mat_tex_ids = jax.device_get(m.mat_texid)
+    tex_data = jax.device_get(m.tex_data)
     # add 255 every third element to create 4 channel rgba texture
     tex_data = np.insert(
         tex_data, np.arange(3, tex_data.shape[0], 3), 255, axis=0
     )
-    tex_offsets = m.tex_adr
-    tex_widths = m.tex_width
-    tex_heights = m.tex_height
-    tex_nchans = m.tex_nchannel
+    tex_offsets = jax.device_get(m.tex_adr)
+    tex_widths = jax.device_get(m.tex_width)
+    tex_heights = jax.device_get(m.tex_height)
+    tex_nchans = jax.device_get(m.tex_nchannel)
 
     self.madrona = MadronaBatchRenderer(
         gpu_id=gpu_id,
@@ -365,13 +398,13 @@ def _setup_jax_primitives(
   init_custom_call_name = f"{custom_call_prefix}_init"
   render_custom_call_name = f"{custom_call_prefix}_render"
 
-  xla_client.register_custom_call_target(
+  _xla_client.register_custom_call_target(
       init_custom_call_name,
       init_custom_call_capsule,
       platform=custom_call_platform,
   )
 
-  xla_client.register_custom_call_target(
+  _xla_client.register_custom_call_target(
       render_custom_call_name,
       render_custom_call_capsule,
       platform=custom_call_platform,
@@ -396,7 +429,7 @@ def _setup_jax_primitives(
     result_types = _lower_shape_dtypes(renderer_outputs)
     result_layouts = [_row_major_layout(t.shape) for t in result_types]
 
-    results = custom_call(
+    results = _custom_call(
         init_custom_call_name,
         backend_config=renderer_encode,
         operands=inputs,
@@ -418,7 +451,7 @@ def _setup_jax_primitives(
     result_types = _lower_shape_dtypes(renderer_outputs)
     result_layouts = [_row_major_layout(t.shape) for t in result_types]
 
-    results = custom_call(
+    results = _custom_call(
         render_custom_call_name,
         backend_config=renderer_encode,
         operands=inputs,
@@ -433,7 +466,7 @@ def _setup_jax_primitives(
   def _render_abstract(*inputs):
     return _shape_dtype_to_abstract_vals(renderer_outputs)
 
-  _init_primitive = core.Primitive(init_custom_call_name)
+  _init_primitive = _Primitive(init_custom_call_name)
   _init_primitive.multiple_results = True
   _init_primitive_impl = partial(xla.apply_primitive, _init_primitive)
   _init_primitive.def_impl(_init_primitive_impl)
@@ -445,7 +478,7 @@ def _setup_jax_primitives(
       platform=custom_call_platform,
   )
 
-  _render_primitive = core.Primitive(render_custom_call_name)
+  _render_primitive = _Primitive(render_custom_call_name)
   _render_primitive.multiple_results = True
   _render_primitive_impl = partial(xla.apply_primitive, _render_primitive)
   _render_primitive.def_impl(_render_primitive_impl)

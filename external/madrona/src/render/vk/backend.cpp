@@ -91,6 +91,23 @@ LoaderLib * LoaderLib::load()
 
 #if defined(MADRONA_LINUX)
     lib = dlopen("libvulkan.so", RTLD_LAZY | RTLD_LOCAL);
+    if (!lib) {
+        // The unversioned .so only exists where vulkan dev packages are
+        // installed; the runtime loader is the versioned soname.
+        lib = dlopen("libvulkan.so.1", RTLD_LAZY | RTLD_LOCAL);
+    }
+    if (!lib) {
+        // Fall back to the loader bundled next to this shared library
+        // (build/vk/ in dev builds, site-packages/madrona_mjx/vk/ in the
+        // conda package), mirroring the macOS fallback below.
+        Dl_info dl_info;
+        if (dladdr((void *)&LoaderLib::load, &dl_info)) {
+            auto libvk_path =
+                std::filesystem::path(dl_info.dli_fname).parent_path() /
+                "vk" / "libvulkan.so.1";
+            lib = dlopen(libvk_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
+        }
+    }
 #elif defined(MADRONA_MACOS)
     lib = dlopen("libvulkan.1.dylib", RTLD_LAZY | RTLD_LOCAL);
     if (!lib) {

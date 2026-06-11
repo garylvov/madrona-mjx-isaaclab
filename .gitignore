@@ -7,3 +7,4 @@ external/mujoco_menagerie/
 conda/output/
 external/madrona/external/madrona-toolchain/cmake-tmp/
 external/madrona/external/madrona-deps/cmake-tmp/
+src/madrona_mjx/*.so

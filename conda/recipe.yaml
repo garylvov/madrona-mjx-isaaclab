@@ -1,5 +1,5 @@
 context:
-  version: "0.2.0"
+  version: "0.3.0"
 
 package:
   name: madrona-mjx-isaaclab
@@ -39,7 +39,8 @@ requirements:
     # leaks __isoc23_* (glibc 2.38) symbols into libmadmjx_mgr.so
     - sysroot_linux-64 2.34.*
   host:
-    - python 3.11.*
+    # variant-pinned via conda/variants.yaml (3.12 canonical, 3.11 for Isaac Sim)
+    - python
     - cuda-nvcc
     - cuda-cudart-dev
     - cuda-nvrtc-dev
@@ -49,8 +50,9 @@ requirements:
     - cuda-cccl
     - cuda-version 12.8.*
   run:
-    - python 3.11.*
-    - jax <0.6.0
+    - python
+    # renderer.py carries a compat shim for both old (0.5.x) and modern jax
+    - jax
     - cuda-cudart
     - cuda-nvrtc
     - libnvjitlink

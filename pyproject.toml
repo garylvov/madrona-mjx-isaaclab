@@ -5,7 +5,7 @@ backend-path = ["external/madrona/py"]
 
 [project]
 name = "madrona_mjx"
-version = "0.2.0"
+version = "0.3.0"
 
 [tool.madrona.packages.madrona_mjx]
 path = "src/madrona_mjx"
@@ -13,7 +13,7 @@ ext-out-dir = "build"
 extensions = [ "_madrona_mjx_batch_renderer", "_madrona_mjx_visualizer" ]
 requires-python = ">=3.10"
 dependencies = [
-    "jax<0.6.0",
+    "jax",
 ]
 
 # Isaac Lab adapter (pure python; isaaclab/torch/pxr provided by the consumer)

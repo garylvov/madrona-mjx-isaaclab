@@ -1,0 +1,5 @@
+# Build matrix: 3.12 is the canonical release; 3.11 kept for Isaac Sim
+# environments (Isaac Sim pins python 3.11).
+python:
+  - "3.12.*"
+  - "3.11.*"

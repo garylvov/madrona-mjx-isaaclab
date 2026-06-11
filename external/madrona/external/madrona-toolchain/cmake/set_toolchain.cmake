@@ -11,19 +11,11 @@ function(madrona_setup_toolchain)
     include("${TOOLCHAIN_REPO}/cmake/current-hashes.cmake")
     include("${TOOLCHAIN_REPO}/cmake/sys-detect.cmake")
 
-    find_package(Git QUIET)
     if (NOT DEFINED MADRONA_TOOLCHAIN_VERSION)
-        if (NOT Git_FOUND)
-            message(FATAL_ERROR "git not found, you must set MADRONA_TOOLCHAIN_VERSION to the short hash of the toolchain commit")
-        endif()
-    
-        execute_process(
-            COMMAND "${GIT_EXECUTABLE}" rev-parse --short HEAD
-            WORKING_DIRECTORY "${TOOLCHAIN_REPO}"
-            OUTPUT_VARIABLE MADRONA_TOOLCHAIN_VERSION
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            COMMAND_ERROR_IS_FATAL ANY
-        )
+        # This tree is vendored (no per-directory git checkout), so the
+        # upstream `git rev-parse --short HEAD` version probe cannot work.
+        # Pin to the madrona-toolchain commit this tree was vendored at.
+        set(MADRONA_TOOLCHAIN_VERSION "8c0b55b")
     endif()
 
     if (MADRONA_LINUX)

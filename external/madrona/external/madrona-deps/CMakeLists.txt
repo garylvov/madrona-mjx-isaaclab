@@ -3,20 +3,11 @@ include(FetchContent)
 
 option(MADRONA_USE_BUNDLED "Use prebuilt dependency binaries" ON)
 
-find_package(Git QUIET)
-
 if (NOT DEFINED MADRONA_DEPS_VERSION)
-    if (NOT Git_FOUND)
-        message(FATAL_ERROR "Git not found, you must set explicit madrona-deps version to use (the short hash)")
-    endif()
-
-    execute_process(
-        COMMAND "${GIT_EXECUTABLE}" rev-parse --short HEAD
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        OUTPUT_VARIABLE MADRONA_DEPS_VERSION
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        COMMAND_ERROR_IS_FATAL ANY
-    )
+    # This tree is vendored (no per-directory git checkout), so the
+    # upstream `git rev-parse --short HEAD` version probe cannot work.
+    # Pin to the madrona-deps commit this tree was vendored at.
+    set(MADRONA_DEPS_VERSION "8d57788")
 endif()
 
 get_property(MULTI_CFG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)

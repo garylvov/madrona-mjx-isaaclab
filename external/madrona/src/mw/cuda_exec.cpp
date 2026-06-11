@@ -5,6 +5,7 @@
  * license that can be found in the LICENSE file or at
  * https://opensource.org/licenses/MIT.
  */
+#include <madrona/baked_path.hpp>
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -957,7 +958,7 @@ static __attribute__((always_inline)) inline void dispatch(
         std::string megakernel_file = "megakernel_" + megakernel_cfg_suffix +
             ".cpp";
         std::string fake_megakernel_cpp_path =
-            std::string(MADRONA_MW_GPU_DEVICE_SRC_DIR) + "/" + megakernel_file;
+            ::madrona::bakedPath(MADRONA_MW_GPU_DEVICE_SRC_DIR) + "/" + megakernel_file;
 
         uint32_t max_registers =
             65536 / megakernel_cfg.numThreads / megakernel_cfg.numBlocksPerSM;

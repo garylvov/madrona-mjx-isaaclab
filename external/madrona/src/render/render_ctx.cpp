@@ -1,3 +1,4 @@
+#include <madrona/baked_path.hpp>
 #include "render_ctx.hpp"
 
 #include <span>
@@ -278,7 +279,7 @@ static PipelineShaders makeDrawShaders(
     (void)clamp_sampler;
 
     std::filesystem::path shader_dir =
-        std::filesystem::path(STRINGIFY(MADRONA_RENDER_DATA_DIR)) /
+        std::filesystem::path(::madrona::bakedPath(STRINGIFY(MADRONA_RENDER_DATA_DIR))) /
         "shaders";
 
     auto shader_path = (shader_dir / "viewer_draw.hlsl").string();
@@ -329,7 +330,7 @@ static PipelineShaders makeDrawShaders(
 static PipelineShaders makeCullShader(const Device &dev)
 {
     std::filesystem::path shader_dir =
-        std::filesystem::path(STRINGIFY(MADRONA_RENDER_DATA_DIR)) /
+        std::filesystem::path(::madrona::bakedPath(STRINGIFY(MADRONA_RENDER_DATA_DIR))) /
         "shaders";
 
     ShaderCompiler compiler;
@@ -902,7 +903,7 @@ inline constexpr size_t SHADOW_OFFSET_FILTER_SIZE = 8;
 static Sky loadSky(const vk::Device &dev, MemoryAllocator &alloc, VkQueue queue)
 {
     std::filesystem::path shader_dir =
-        std::filesystem::path(STRINGIFY(MADRONA_RENDER_DATA_DIR)) /
+        std::filesystem::path(::madrona::bakedPath(STRINGIFY(MADRONA_RENDER_DATA_DIR))) /
         "sky";
 
     auto [transmittance, transmittance_reqs] = alloc.makeTexture2D(

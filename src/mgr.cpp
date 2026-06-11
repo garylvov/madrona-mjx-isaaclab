@@ -1,3 +1,4 @@
+#include <madrona/baked_path.hpp>
 #include "mgr.hpp"
 #include "sim.hpp"
 #include "geometry.hpp"
@@ -482,7 +483,7 @@ static RTAssets loadRenderObjects(
     std::array<std::string, 1> 
         render_asset_paths;
     render_asset_paths[(size_t)RenderPrimObjectIDs::DebugCam] =
-        (std::filesystem::path(DATA_DIR) / "debugcam.obj").string();
+        (std::filesystem::path(::madrona::bakedPath(DATA_DIR)) / "debugcam.obj").string();
 
     std::array<const char *, render_asset_paths.size()> render_asset_cstrs;
     for (size_t i = 0; i < render_asset_paths.size(); i++) {

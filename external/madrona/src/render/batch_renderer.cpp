@@ -1,3 +1,4 @@
+#include <madrona/baked_path.hpp>
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -170,7 +171,7 @@ static vk::PipelineShaders makeDrawShaders(const vk::Device &dev,
     (void)clamp_sampler;
 
     std::filesystem::path shader_dir =
-        std::filesystem::path(STRINGIFY(MADRONA_RENDER_DATA_DIR)) /
+        std::filesystem::path(::madrona::bakedPath(STRINGIFY(MADRONA_RENDER_DATA_DIR))) /
         "shaders";
 
     auto shader_path = [depth_only, shader_dir] () {
@@ -394,7 +395,7 @@ static vk::PipelineShaders makeShaders(const vk::Device &dev,
     (void)sampler;
 
     std::filesystem::path shader_dir =
-        std::filesystem::path(STRINGIFY(MADRONA_RENDER_DATA_DIR)) /
+        std::filesystem::path(::madrona::bakedPath(STRINGIFY(MADRONA_RENDER_DATA_DIR))) /
         "shaders";
 
     ShaderCompiler compiler;
@@ -413,7 +414,7 @@ static vk::PipelineShaders makeShadersLighting(const vk::Device &dev,
                                        VkSampler repeat_sampler = VK_NULL_HANDLE)
 {
     std::filesystem::path shader_dir =
-        std::filesystem::path(STRINGIFY(MADRONA_RENDER_DATA_DIR)) /
+        std::filesystem::path(::madrona::bakedPath(STRINGIFY(MADRONA_RENDER_DATA_DIR))) /
         "shaders";
 
     ShaderCompiler compiler;

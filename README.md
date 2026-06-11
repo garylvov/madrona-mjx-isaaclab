@@ -25,10 +25,11 @@ CUDA 12.8, python 3.11. You must provide `mujoco >= 3.3.3` with mjx yourself
 
 ## Use with Isaac Lab
 
-This package provides the renderer; the Isaac Lab camera sensors that bind to
-it (`MadronaTiledCameraCfg` / `MadronaMultiCamTiledCameraCfg`) live in our
-Isaac Lab extension. Drop one into an `InteractiveSceneCfg` like any other
-sensor and launch with `--headless --enable_cameras`:
+The conda package ships both the renderer (`madrona_mjx`) and the Isaac Lab
+adapter (`madrona_mjx_isaaclab`: camera sensor + configs + USD scene-to-Madrona
+geometry extraction). Drop a config into an `InteractiveSceneCfg` like any
+other sensor. Madrona renders independently of Isaac's RTX camera pipeline,
+so `--enable_cameras` is NOT required (headless works as usual):
 
 ```python
 from isaaclab.scene import InteractiveSceneCfg
@@ -36,7 +37,7 @@ from isaaclab.sensors import CameraCfg
 from isaaclab.sim import PinholeCameraCfg
 from isaaclab.utils import configclass
 
-from gigastrap_isaaclab_ext.madrona_renderer.camera_cfg import (
+from madrona_mjx_isaaclab.camera_cfg import (
     CameraOffsetCfg,
     MadronaCameraCfg,
     MadronaMultiCamTiledCameraCfg,

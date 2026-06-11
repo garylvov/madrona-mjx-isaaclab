@@ -26,6 +26,11 @@ PKG_DIR="$SP_DIR/madrona_mjx"
 mkdir -p "$PKG_DIR/vk"
 
 cp "$INSTALL_ROOT"/src/madrona_mjx/*.py "$PKG_DIR"/
+
+# Isaac Lab adapter package (camera configs + scene adapter). Pure python;
+# requires isaaclab/torch/pxr at import time, which consumers provide.
+cp -r "$INSTALL_ROOT"/src/madrona_mjx_isaaclab "$SP_DIR"/
+find "$SP_DIR/madrona_mjx_isaaclab" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
 cp "$BUILD_DIR"/_madrona_mjx_batch_renderer*.so "$PKG_DIR"/
 cp "$BUILD_DIR"/_madrona_mjx_visualizer*.so "$PKG_DIR"/ 2>/dev/null || true
 cp "$BUILD_DIR"/libmadmjx_mgr.so \

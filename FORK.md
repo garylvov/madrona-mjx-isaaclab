@@ -5,10 +5,12 @@ third-party dependencies as plain files (no submodules). Upstream is unmaintaine
 this tree is the source of truth going forward. It is built and published as the
 `madrona-mjx-isaaclab` conda package on the `garylvov` prefix.dev channel.
 
-Known issue: the pure-MJX ECS engine-init path fails on sm_86 (RTX 30xx) with
-`CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES` (reproduce with `scripts/standalone_smoke.py`;
-pre-existing upstream behavior, same family as the BVH launch-bounds fix below).
-The Isaac Lab renderer path is unaffected.
+Gotcha (resolved): with JAX in the process, JAX's default ~75% GPU memory
+preallocation starves Madrona's engine-init launch reservation on smaller GPUs
+(24GB RTX 30xx) and fails with `CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES` even
+though the kernel's own resources are trivial. Set
+`XLA_PYTHON_CLIENT_PREALLOCATE=false` (scripts/standalone_smoke.py does this
+itself); the engine now prints a hint when an init launch fails this way.
 
 ## Provenance
 

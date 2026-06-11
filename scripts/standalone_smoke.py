@@ -11,7 +11,13 @@ Run: python scripts/standalone_smoke.py [--rt]
 from __future__ import annotations
 
 import argparse
+import os
 import sys
+
+# JAX preallocates ~75% of GPU memory by default, which starves Madrona's
+# launch-time memory reservation on smaller GPUs (e.g. 24GB RTX 30xx) and
+# fails engine init with CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES.
+os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
 
 import jax
 import mujoco

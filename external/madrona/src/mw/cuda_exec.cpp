@@ -1753,9 +1753,35 @@ static GPUEngineState initEngineAndUserState(
 
     auto launchKernel = [strm](CUfunction f, uint32_t num_blocks,
                                uint32_t num_threads,
-                               HeapArray<void *> &args) {
-        REQ_CU(cuLaunchKernel(f, num_blocks, 1, 1, num_threads, 1, 1,
-                              0, strm, nullptr, args.data()));
+                               HeapArray<void *> &args,
+                               const char *label = "?") {
+        CUresult launch_res = cuLaunchKernel(
+            f, num_blocks, 1, 1, num_threads, 1, 1,
+            0, strm, nullptr, args.data());
+        if (launch_res != CUDA_SUCCESS) {
+            int regs = -1, static_smem = -1, max_threads = -1;
+            int local_bytes = -1, const_bytes = -1;
+            cuFuncGetAttribute(&regs, CU_FUNC_ATTRIBUTE_NUM_REGS, f);
+            cuFuncGetAttribute(&static_smem,
+                               CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, f);
+            cuFuncGetAttribute(&max_threads,
+                               CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, f);
+            cuFuncGetAttribute(&local_bytes,
+                               CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES, f);
+            cuFuncGetAttribute(&const_bytes,
+                               CU_FUNC_ATTRIBUTE_CONST_SIZE_BYTES, f);
+            fprintf(stderr,
+                "[madrona] init kernel '%s' launch failed: blocks=%u "
+                "threads=%u regs=%d static_smem=%d max_threads_per_block=%d "
+                "local_bytes=%d const_bytes=%d nargs=%lu\n"
+                "[madrona] NOTE: if all resources above look trivial, the GPU "
+                "is likely out of memory (e.g. JAX preallocation; set "
+                "XLA_PYTHON_CLIENT_PREALLOCATE=false)\n",
+                label, num_blocks, num_threads, regs, static_smem,
+                max_threads, local_bytes, const_bytes,
+                (unsigned long)args.size());
+        }
+        REQ_CU(launch_res);
     };
 
     uint64_t num_init_bytes =
@@ -1862,7 +1888,7 @@ static GPUEngineState initEngineAndUserState(
     auto no_args = makeKernelArgBuffer();
 
     launchKernel(gpu_kernels.computeGPUImplConsts, 1, 1,
-                 compute_consts_args);
+                 compute_consts_args, "computeGPUImplConsts");
 
     REQ_CUDA(cudaStreamSynchronize(strm));
 
@@ -1918,25 +1944,25 @@ static GPUEngineState initEngineAndUserState(
 
     if (exec_mode == ExecutorMode::JobSystem) {
         launchKernel(gpu_kernels.initWorlds, 1, consts::numMegakernelThreads,
-                     no_args);
+                     no_args, "initWorlds(jobsys)");
     
         uint32_t num_queue_blocks =
             utils::divideRoundUp(num_worlds, consts::numEntryQueueThreads);
 
         launchKernel(gpu_kernels.queueUserInit, num_queue_blocks,
-                     consts::numEntryQueueThreads, init_worlds_args); 
+                     consts::numEntryQueueThreads, init_worlds_args, "queueUserInit"); 
 
         launchKernel(gpu_kernels.megakernels[0], 1,
-                     consts::numMegakernelThreads, no_args);
+                     consts::numMegakernelThreads, no_args, "megakernel0");
     } else if (exec_mode == ExecutorMode::TaskGraph) {
-        launchKernel(gpu_kernels.initECS, 1, 1, init_ecs_args);
+        launchKernel(gpu_kernels.initECS, 1, 1, init_ecs_args, "initECS");
 
         uint32_t num_init_blocks =
             utils::divideRoundUp(num_worlds, consts::numMegakernelThreads);
 
         launchKernel(gpu_kernels.initWorlds, num_init_blocks,
-                     consts::numMegakernelThreads, init_worlds_args);
-        launchKernel(gpu_kernels.initTasks, 1, 1, init_tasks_args);
+                     consts::numMegakernelThreads, init_worlds_args, "initWorlds");
+        launchKernel(gpu_kernels.initTasks, 1, 1, init_tasks_args, "initTasks");
     }
 
     REQ_CUDA(cudaStreamSynchronize(strm));
@@ -1977,7 +2003,7 @@ static GPUEngineState initEngineAndUserState(
         // Launch the kernel in the megakernel module to initialize the BVH 
         // params
         launchKernel(gpu_kernels.initBVHParams, 1, 1,
-                     init_bvh_args);
+                     init_bvh_args, "initBVHParams");
 
         REQ_CUDA(cudaStreamSynchronize(strm));
 

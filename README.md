@@ -23,6 +23,11 @@ Requirements: linux-64, glibc >= 2.34 (Ubuntu 22.04+), NVIDIA driver for
 CUDA 12.8, python 3.11. You must provide `mujoco >= 3.3.3` with mjx yourself
 (intentionally not a dependency, to avoid clobbering pip-installed mujoco).
 
+If JAX runs in the same process (the MJX path does), set
+`XLA_PYTHON_CLIENT_PREALLOCATE=false`: JAX's default ~75% GPU memory
+preallocation starves Madrona's engine init on smaller GPUs (24GB RTX 30xx)
+and it fails with `CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES`.
+
 ## Use with Isaac Lab
 
 The conda package ships both the renderer (`madrona_mjx`) and the Isaac Lab

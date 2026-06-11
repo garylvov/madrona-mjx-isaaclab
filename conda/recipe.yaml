@@ -1,0 +1,70 @@
+context:
+  version: "0.1.0"
+
+package:
+  name: madrona-mjx
+  version: ${{ version }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  script:
+    file: build.sh
+  dynamic_linking:
+    # rpaths are set by hand in build.sh (patchelf $ORIGIN closure inside
+    # site-packages/madrona_mjx); the relinker cannot improve on them and
+    # errors trying ("new value is longer than old value")
+    binary_relocation: false
+    missing_dso_allowlist:
+      - "libcuda.so*"
+      # resolved at runtime relative to the shipped libs ($ORIGIN rpath); the
+      # relocation scanner does not follow our patchelf'd rpaths
+      - "libdxcompiler.so"
+      - "libmadmjx_mgr.so"
+      - "libmadrona_std_mem.so"
+      - "libmadrona_render_shader_compiler.so"
+      - "libembree4.so*"
+      - "libglfw.so*"
+      - "libvulkan.so*"
+
+requirements:
+  build:
+    - cmake
+    - make
+    - patchelf
+    - sysroot_linux-64
+  host:
+    - python 3.11.*
+    - cuda-nvcc
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - libnvjitlink-dev
+    - cuda-cccl
+    - cuda-version 12.8.*
+  run:
+    - python 3.11.*
+    - jax <0.6.0
+    - cuda-cudart
+    - cuda-nvrtc
+    - libnvjitlink
+    # headers: madrona compiles its GPU device code at runtime with NVRTC and
+    # the baked -I flags point at $PREFIX/targets/x86_64-linux/include
+    - cuda-cudart-dev
+    - cuda-cccl
+    # NOT a run dep on purpose: madrona_mjx.renderer imports mujoco.mjx, but
+    # gigastrap provides mujoco via pip (py.mujoco.org); a conda mujoco here
+    # would clobber it. Consumers must provide mujoco>=3.3.3 themselves.
+
+tests:
+  - script:
+      - python -c "import madrona_mjx"
+    requirements:
+      run:
+        - mujoco-mjx <3.6
+
+about:
+  summary: Madrona MJX batch renderer (gigastrap fork; upstream shacklettbp/madrona_mjx is unmaintained)
+  license: MIT
+  repository: https://github.com/shacklettbp/madrona_mjx

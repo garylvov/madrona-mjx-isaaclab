@@ -9,7 +9,7 @@ source:
   path: ..
 
 build:
-  number: 0
+  number: 1
   script:
     file: build.sh
   dynamic_linking:
@@ -34,7 +34,10 @@ requirements:
     - cmake
     - make
     - patchelf
-    - sysroot_linux-64
+    # 2.34 keeps the binaries deployable on libc>=2.35 hosts (gigastrap's
+    # isaaclab system-requirement); an unpinned sysroot resolves to 2.39 and
+    # leaks __isoc23_* (glibc 2.38) symbols into libmadmjx_mgr.so
+    - sysroot_linux-64 2.34.*
   host:
     - python 3.11.*
     - cuda-nvcc

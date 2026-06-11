@@ -1,0 +1,41 @@
+[workspace]
+channels = ["https://prefix.dev/conda-forge"]
+name = "madrona"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+# Self-contained build environment: no Isaac, no gigastrap. Madrona brings its
+# own clang toolchain (FetchContent); we only supply cmake/make, a sysroot
+# (hosts like Ubuntu 24.04 lack /usr/lib64/libm.so.6), CUDA, and python.
+[dependencies]
+python = "3.11.*"
+cmake = "*"
+make = "*"
+patchelf = "*"
+sysroot_linux-64 = "2.34.*"
+cuda-version = "12.8.*"
+cuda-nvcc = "*"
+cuda-cudart-dev = "*"
+cuda-nvrtc-dev = "*"
+libnvjitlink-dev = "*"
+cuda-cccl = "*"
+rattler-build = "*"
+
+[feature.test.dependencies]
+jax = "<0.6.0"
+mujoco-mjx = "<3.6"
+
+[environments]
+default = []
+test = ["test"]
+
+[tasks]
+build = """
+mkdir -p build && cd build && \
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_SYSROOT=$PIXI_PROJECT_ROOT/.pixi/envs/default/x86_64-conda-linux-gnu/sysroot \
+  -DCUDAToolkit_ROOT=$PIXI_PROJECT_ROOT/.pixi/envs/default && \
+make -j$(nproc)
+"""
+conda-build = "rattler-build build --recipe conda/recipe.yaml --output-dir conda/output -c conda-forge"
+conda-upload = "rattler-build upload prefix -c garylvov conda/output/linux-64/madrona-mjx-*.conda"

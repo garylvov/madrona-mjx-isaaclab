@@ -66,10 +66,20 @@ requirements:
 
 tests:
   - script:
-      - python -c "import madrona_mjx"
+      # Driverless machines (CI runners) cannot resolve libcuda.so.1; link
+      # the CUDA driver stub so the extension can at least be loaded.
+      - >-
+        if ! ldconfig -p | grep -q libcuda.so.1; then
+        mkdir -p "$PREFIX/lib/stub-ld" &&
+        ln -sf "$PREFIX/targets/x86_64-linux/lib/stubs/libcuda.so" "$PREFIX/lib/stub-ld/libcuda.so.1" &&
+        export LD_LIBRARY_PATH="$PREFIX/lib/stub-ld:$LD_LIBRARY_PATH";
+        fi;
+        python -c "import madrona_mjx"
+      - python -c "import madrona_mjx_isaaclab.mesh_decimation.spec"
     requirements:
       run:
         - mujoco-mjx
+        - cuda-driver-dev
 
 about:
   summary: Madrona MJX batch renderer (maintained fork; upstream shacklettbp/madrona_mjx is unmaintained)

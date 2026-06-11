@@ -111,6 +111,25 @@ BVH `__launch_bounds__` fixes, CUDA-graph-safe `TmpAllocator` sizing, and
 relocation-safe packaging (string-merge disabled, relocation-proof NVRTC
 include paths) so the conda package works from any install prefix.
 
+## Local install into your own env (uv / pip)
+
+The native build runs inside this repo's pixi env (your env stays clean);
+the python side then installs editable into whatever env you use:
+
+```bash
+git clone https://github.com/garylvov/madrona-mjx-isaaclab && cd madrona-mjx-isaaclab
+pixi run build        # compiles the renderer into build/
+uv pip install -e .   # exposes madrona_mjx + madrona_mjx_isaaclab
+```
+
+Notes:
+- Use a python 3.11 env (the extensions are built against the pixi env's 3.11).
+- Editable-only: upstream's build backend emits a redirect into this checkout,
+  so keep the clone around -- the compiled libs also resolve their CUDA
+  libraries through it.
+- Bring your own `jax <0.6.0` and `mujoco >= 3.3.3` (plus Isaac Lab if you use
+  the `madrona_mjx_isaaclab` adapter).
+
 ## License
 
 MIT, same as upstream (see [LICENSE](LICENSE)).

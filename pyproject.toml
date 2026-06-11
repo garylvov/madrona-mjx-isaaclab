@@ -5,7 +5,7 @@ backend-path = ["external/madrona/py"]
 
 [project]
 name = "madrona_mjx"
-version = "0.0.1"
+version = "0.2.0"
 
 [tool.madrona.packages.madrona_mjx]
 path = "src/madrona_mjx"
@@ -15,6 +15,10 @@ requires-python = ">=3.10"
 dependencies = [
     "jax<0.6.0",
 ]
+
+# Isaac Lab adapter (pure python; isaaclab/torch/pxr provided by the consumer)
+[tool.madrona.packages.madrona_mjx_isaaclab]
+path = "src/madrona_mjx_isaaclab"
 
 [tool.isort]
 force_single_line = true

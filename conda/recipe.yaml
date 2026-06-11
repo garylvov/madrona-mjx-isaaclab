@@ -9,7 +9,7 @@ source:
   path: ..
 
 build:
-  number: 4
+  number: 5
   script:
     file: build.sh
   dynamic_linking:

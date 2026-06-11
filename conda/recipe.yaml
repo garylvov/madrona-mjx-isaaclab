@@ -69,7 +69,7 @@ tests:
       - python -c "import madrona_mjx"
     requirements:
       run:
-        - mujoco-mjx <3.6
+        - mujoco-mjx
 
 about:
   summary: Madrona MJX batch renderer (maintained fork; upstream shacklettbp/madrona_mjx is unmaintained)

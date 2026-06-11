@@ -1,0 +1,7 @@
+build/
+__pycache__/
+*.pyc
+external/madrona/external/madrona-deps/bundled-deps/
+external/madrona/external/madrona-toolchain/bundled-toolchain/
+external/mujoco_menagerie/
+conda/output/

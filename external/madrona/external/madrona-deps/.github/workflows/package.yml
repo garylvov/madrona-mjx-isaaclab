@@ -1,0 +1,127 @@
+name: Package
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macOS-12]
+
+    steps:
+    - if: matrix.os == 'ubuntu-22.04'
+      name: Install dependencies
+      run: |
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+        sudo add-apt-repository -y "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main"
+        sudo add-apt-repository -y "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main"
+        sudo apt-get update -y
+        sudo apt-get install -y clang-15
+        echo "CC=clang-15" >> $GITHUB_ENV
+        echo "CXX=clang++-15" >> $GITHUB_ENV
+    - uses: actions/checkout@v2
+    - name: Set Package Name
+      run: echo "PACKAGE_NAME=madrona-deps-`git rev-parse --short HEAD`-${{ matrix.os }}" >> $GITHUB_ENV
+    - name: Make build dir
+      run: mkdir build
+    - name: CMake Config
+      run: cmake src -DCMAKE_INSTALL_PREFIX=build/$PACKAGE_NAME -B build
+    - name: Build
+      run: cmake --build build --parallel=3
+    - name: Install
+      run: cmake --install build
+    - name: Package
+      run: tar -C build -cf build/$PACKAGE_NAME.tar.zst $PACKAGE_NAME
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2.3.1
+      with:
+        name: ${{ env.PACKAGE_NAME }}
+        path: build/${{ env.PACKAGE_NAME }}.tar.zst
+        if-no-files-found: error
+        retention-days: 0
+
+  release:
+    runs-on: ubuntu-22.04
+    needs: build
+    steps:
+    - uses: actions/checkout@v2
+    - name: Compute Initial Package Prefix
+      run: echo "PACKAGE_PREFIX=madrona-deps-`git rev-parse --short HEAD`" >> $GITHUB_ENV
+    - name: Download Ubuntu Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.PACKAGE_PREFIX }}-ubuntu-22.04
+    - name: Download MacOS Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.PACKAGE_PREFIX }}-macOS-12
+    - name: Compute Tarball Hashes
+      run: |
+        echo "set(MADRONA_DEPS_LINUX_HASH \"$(sha256sum ${{ env.PACKAGE_PREFIX}}-ubuntu-22.04.tar.zst | cut -d' ' -f1)\")" > cmake/current-hashes.cmake
+        echo "set(MADRONA_DEPS_MACOS_HASH \"$(sha256sum ${{ env.PACKAGE_PREFIX }}-macOS-12.tar.zst | cut -d' ' -f1)\")" >> cmake/current-hashes.cmake
+    - name: Commit and Push
+      run: |
+        git add cmake/current-hashes.cmake
+        git -c user.name="${{ github.actor }}" -c user.email="${{ github.actor }}@users.noreply.github.com" commit -m'Update Hashes' --author=.
+        git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+    - name: Compute New Commit Hashes
+      run: |
+        echo "SHORT_HASH=`git rev-parse --short HEAD`" >> $GITHUB_ENV
+        echo "FULL_HASH=`git rev-parse HEAD`" >> $GITHUB_ENV
+    - name: Create Release
+      uses: actions/github-script@v6
+      with: 
+        script: |
+          const fs = require("fs");
+
+          await github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'refs/tags/${{ env.SHORT_HASH }}',
+            sha: "${{ env.FULL_HASH }}",
+          });
+
+          const release = await github.rest.repos.createRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag_name: "${{ env.SHORT_HASH }}",
+            generate_release_notes: true,
+            name: "${{ env.SHORT_HASH }}",
+            draft: true,
+          });
+
+          const linux_src = "${{ env.PACKAGE_PREFIX }}-ubuntu-22.04.tar.zst";
+          const linux_dst = "madrona-deps-${{ env.SHORT_HASH }}-linux.tar.zst";
+
+          const mac_src = "${{ env.PACKAGE_PREFIX }}-macOS-12.tar.zst";
+          const mac_dst = "madrona-deps-${{ env.SHORT_HASH }}-mac.tar.zst";
+
+          const variants = [[linux_src, linux_dst], [mac_src, mac_dst]];
+          let promises = [];
+
+          for (const [src, dst] of variants) {
+            const file_data = fs.readFileSync(src);
+
+            const promise = github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: dst,
+              data: file_data,
+            });
+
+            promises.push(promise);
+          }
+          await Promise.all(promises);
+
+          github.rest.repos.updateRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            release_id: release.data.id,
+            tag_name: "${{ env.SHORT_HASH }}",
+            draft: false,
+          });

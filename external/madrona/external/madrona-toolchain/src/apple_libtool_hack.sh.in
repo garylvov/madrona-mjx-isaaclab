@@ -1,0 +1,5 @@
+#!/bin/sh
+
+unset DYLD_LIBRARY_PATH
+
+@LIBTOOL_HACK_PATH@ $@

@@ -1,0 +1,4 @@
+/build
+/build-debug
+/py/__pycache__
+/scripts/__pycache__

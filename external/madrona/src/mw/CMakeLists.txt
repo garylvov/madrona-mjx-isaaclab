@@ -116,6 +116,11 @@ if (CUDAToolkit_VERSION_MINOR LESS 5)
 endif()
 
 set(NVRTC_INCLUDE_DIRS
+    # The device dir itself must be an include path: the synthesized
+    # megakernel units do `#include "megakernel_impl.inl"` and relying on
+    # NVRTC's resolve-relative-to-unit-name behavior breaks once the binary
+    # has been relocated by a package manager (conda prefix replacement).
+    ${CMAKE_CURRENT_SOURCE_DIR}/device
     ${CMAKE_CURRENT_SOURCE_DIR}/device/include
     ${MADRONA_HDRS_INCLUDES}
     ${CCCL_OVERRIDE_INCLUDE_DIRS}

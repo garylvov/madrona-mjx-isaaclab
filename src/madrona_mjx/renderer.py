@@ -201,7 +201,7 @@ class BatchRenderer:
         num_worlds=num_worlds,
         batch_render_view_width=batch_render_view_width,
         batch_render_view_height=batch_render_view_height,
-        cam_fovy=m.cam_fovy,
+        cam_fovy=np.asarray(jax.device_get(m.cam_fovy), dtype=np.float32),
         enabled_geom_groups=enabled_geom_groups,
         add_cam_debug_geo=add_cam_debug_geo,
         use_rt=not use_rasterizer,

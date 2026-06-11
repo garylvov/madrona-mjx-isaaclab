@@ -45,11 +45,11 @@ for so in "$PKG_DIR"/*.so* "$PKG_DIR"/vk/libvulkan.so.1; do
     patchelf --set-rpath '$ORIGIN:$ORIGIN/vk:$ORIGIN/../../..' "$so"
 done
 
-DIST_INFO="$SP_DIR/madrona_mjx-$PKG_VERSION.dist-info"
+DIST_INFO="$SP_DIR/madrona_mjx_isaaclab-$PKG_VERSION.dist-info"
 mkdir -p "$DIST_INFO"
 cat > "$DIST_INFO/METADATA" <<EOF
 Metadata-Version: 2.1
-Name: madrona-mjx
+Name: madrona-mjx-isaaclab
 Version: $PKG_VERSION
 EOF
 printf 'conda\n' > "$DIST_INFO/INSTALLER"

@@ -3,7 +3,12 @@
 Self-contained fork of `madrona_mjx` plus the vendored Madrona engine and all of its
 third-party dependencies as plain files (no submodules). Upstream is unmaintained;
 this tree is the source of truth going forward. It is built and published as the
-`madrona-mjx` conda package on the `garylvov` prefix.dev channel.
+`madrona-mjx-isaaclab` conda package on the `garylvov` prefix.dev channel.
+
+Known issue: the pure-MJX ECS engine-init path fails on sm_86 (RTX 30xx) with
+`CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES` (reproduce with `scripts/standalone_smoke.py`;
+pre-existing upstream behavior, same family as the BVH launch-bounds fix below).
+The Isaac Lab renderer path is unaffected.
 
 ## Provenance
 

@@ -2,14 +2,14 @@ context:
   version: "0.1.0"
 
 package:
-  name: madrona-mjx
+  name: madrona-mjx-isaaclab
   version: ${{ version }}
 
 source:
   path: ..
 
 build:
-  number: 5
+  number: 0
   script:
     file: build.sh
   dynamic_linking:
@@ -70,6 +70,6 @@ tests:
         - mujoco-mjx <3.6
 
 about:
-  summary: Madrona MJX batch renderer (gigastrap fork; upstream shacklettbp/madrona_mjx is unmaintained)
+  summary: Madrona MJX batch renderer (maintained fork; upstream shacklettbp/madrona_mjx is unmaintained)
   license: MIT
-  repository: https://github.com/shacklettbp/madrona_mjx
+  repository: https://github.com/garylvov/madrona-mjx-isaaclab

@@ -1,45 +1,95 @@
 # madrona-mjx-isaaclab
 
-Maintained standalone fork of [madrona_mjx](https://github.com/shacklettbp/madrona_mjx)
+> **Disclaimer: not maintained.** This fork exists for our own projects and is
+> published as-is. No support, no roadmap, no compatibility promises. Upstream
+> madrona_mjx is also unmaintained, which is why this exists.
+
+Standalone fork of [madrona_mjx](https://github.com/shacklettbp/madrona_mjx)
 (the [Madrona](https://madrona-engine.github.io) GPU batch renderer + MuJoCo MJX
 bindings), used as the high-throughput tiled-camera renderer for Isaac Lab.
-Upstream is unmaintained; everything (engine + third-party deps) is vendored
-here as plain files. Original commit provenance and the full list of changes:
-[FORK.md](FORK.md). Upstream docs: [docs/README_upstream.md](docs/README_upstream.md).
+Everything (engine + third-party deps) is vendored here as plain files.
+Original commit provenance and the full list of changes: [FORK.md](FORK.md).
+Upstream docs: [docs/README_upstream.md](docs/README_upstream.md).
 
 ## Install (prebuilt conda package)
 
 ```bash
 pixi project channel add https://prefix.dev/garylvov
-pixi add madrona-mjx
-# or: conda install -c https://repo.prefix.dev/garylvov madrona-mjx
+pixi add madrona-mjx-isaaclab
+# or: conda install -c https://repo.prefix.dev/garylvov madrona-mjx-isaaclab
 ```
 
 Requirements: linux-64, glibc >= 2.34 (Ubuntu 22.04+), NVIDIA driver for
 CUDA 12.8, python 3.11. You must provide `mujoco >= 3.3.3` with mjx yourself
 (intentionally not a dependency, to avoid clobbering pip-installed mujoco).
 
-## Use
+## Use with Isaac Lab
 
-With Isaac Lab: point your scene at the Madrona camera configs
-(`MadronaTiledCameraCfg` / `MadronaMultiCamTiledCameraCfg` in
-[gigastrap](https://github.com/garylvov/gigastrap)'s `madrona_renderer`
-extension). Texture resolution is set per camera config via
-`max_texture_size` (falls back to the `MADRONA_MAX_TEXTURE_SIZE` env var,
-then 512); all cameras of one renderer share geometry and texture memory.
-
-With MJX directly:
+This package provides the renderer; the Isaac Lab camera sensors that bind to
+it (`MadronaTiledCameraCfg` / `MadronaMultiCamTiledCameraCfg`) live in our
+Isaac Lab extension. Drop one into an `InteractiveSceneCfg` like any other
+sensor and launch with `--headless --enable_cameras`:
 
 ```python
-from madrona_mjx import BatchRenderer
-renderer = BatchRenderer(mjx_model, gpu_id=0, num_worlds=N,
-                         batch_render_view_width=64,
-                         batch_render_view_height=64)
+from isaaclab.scene import InteractiveSceneCfg
+from isaaclab.sensors import CameraCfg
+from isaaclab.sim import PinholeCameraCfg
+from isaaclab.utils import configclass
+
+from gigastrap_isaaclab_ext.madrona_renderer.camera_cfg import (
+    CameraOffsetCfg,
+    MadronaCameraCfg,
+    MadronaMultiCamTiledCameraCfg,
+    MadronaTiledCameraCfg,
+)
+
+
+@configclass
+class SceneCfg(InteractiveSceneCfg):
+    robot = MY_ROBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+    # One camera per env; Madrona renders all envs in a single batched call.
+    camera = MadronaTiledCameraCfg(
+        prim_path="{ENV_REGEX_NS}/Camera",
+        width=128,
+        height=128,
+        data_types=["rgb", "depth"],
+        spawn=PinholeCameraCfg(focal_length=24.0, horizontal_aperture=20.955),
+        offset=CameraCfg.OffsetCfg(
+            pos=(1.0, 0.0, 0.5), rot=(0.61, 0.35, 0.35, 0.61), convention="world"
+        ),
+        use_rasterizer=True,   # False = raytracer
+        max_texture_size=256,  # max edge of every ingested texture (0 disables downsampling)
+    )
 ```
 
-Smoke test: `python scripts/standalone_smoke.py`. Known issue: the pure-MJX
-ECS engine init currently fails on sm_86 (RTX 30xx) with
-`LAUNCH_OUT_OF_RESOURCES`; the Isaac Lab renderer path is unaffected.
+Frames arrive like any Isaac Lab camera: `env.scene["camera"].data.output["rgb"]`
+with shape `(num_envs, H, W, 3)`, so standard observation terms work unchanged.
+
+Multiple views per env render in the same batched call and share one
+geometry/texture pool (`max_texture_size` applies to the whole sensor);
+outputs are keyed `"rgb"`, `"rgb_1"`, ...:
+
+```python
+    cameras = MadronaMultiCamTiledCameraCfg(
+        prim_path="{ENV_REGEX_NS}/MultiCam",
+        width=128,
+        height=128,
+        data_types=["rgb"],
+        cameras=[
+            # tracks an articulation link every frame
+            MadronaCameraCfg(
+                offset=CameraOffsetCfg(pos=(0.05, 0.0, 0.02), body_name="palm_link"),
+                spawn=PinholeCameraCfg(focal_length=24.0),
+            ),
+            # static in the env-local frame
+            MadronaCameraCfg(
+                offset=CameraOffsetCfg(pos=(1.2, 0.0, 0.8)),
+                spawn=PinholeCameraCfg(focal_length=24.0),
+            ),
+        ],
+    )
+```
 
 ## Build from source
 
